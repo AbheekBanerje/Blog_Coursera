@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Making Data Management Decisions – Gapminder Dataset</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --ink: #1a1410;
+    --paper: #faf8f3;
+    --cream: #f0ebe0;
+    --accent: #b5451b;
+    --gold: #c9921a;
+    --rule: #d4c9b0;
+    --code-bg: #1e1b16;
+    --code-fg: #e8dfc8;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    padding: 0 1rem;
+  }
+
+  /* ── Masthead ── */
+  header {
+    border-top: 4px solid var(--ink);
+    border-bottom: 1px solid var(--rule);
+    text-align: center;
+    padding: 2.5rem 1rem 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+  }
+  header::after {
+    content: '';
+    display: block;
+    border-top: 3px double var(--ink);
+    margin-top: 1.5rem;
+  }
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 0.75rem;
+    color: var(--ink);
+  }
+  .meta {
+    font-size: 0.85rem;
+    color: #6b5d4f;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Layout ── */
+  article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 6rem;
+  }
+
+  /* ── Section titles ── */
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 3rem 0 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    color: var(--ink);
+  }
+  h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin: 2.2rem 0 0.6rem;
+  }
+
+  p { margin-bottom: 1.2rem; }
+
+  /* ── Pull quote ── */
+  blockquote {
+    border-left: 4px solid var(--gold);
+    background: var(--cream);
+    padding: 1rem 1.5rem;
+    margin: 2rem 0;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: #3d2e1e;
+  }
+
+  /* ── Code block ── */
+  .code-wrap {
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1.4rem 1.6rem;
+    overflow-x: auto;
+    margin: 1.8rem 0;
+  }
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: var(--code-fg);
+    white-space: pre;
+  }
+  .tok-kw  { color: #e06c75; }
+  .tok-str { color: #98c379; }
+  .tok-cm  { color: #7f8c6e; font-style: italic; }
+  .tok-fn  { color: #61afef; }
+  .tok-num { color: #d19a66; }
+
+  /* ── Frequency table ── */
+  .freq-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0 2rem;
+    font-size: 0.88rem;
+    font-family: 'Source Serif 4', serif;
+  }
+  .freq-table caption {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-align: left;
+    margin-bottom: 0.4rem;
+    color: var(--accent);
+    caption-side: top;
+    padding-bottom: 0.4rem;
+  }
+  .freq-table thead tr {
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+  }
+  .freq-table th {
+    padding: 0.4rem 0.8rem;
+    text-align: left;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .freq-table td {
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .freq-table tr:last-child td { border-bottom: 2px solid var(--ink); }
+  .bar-cell { width: 120px; }
+  .bar {
+    height: 10px;
+    background: var(--accent);
+    border-radius: 2px;
+    opacity: 0.75;
+  }
+  .total-row td { font-weight: 600; background: var(--cream); }
+
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.55rem;
+    border-radius: 2px;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+  }
+
+  footer {
+    max-width: 720px;
+    margin: 0 auto;
+    border-top: 1px solid var(--rule);
+    padding: 1.5rem 0;
+    font-size: 0.8rem;
+    color: #6b5d4f;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="kicker">Peer-graded Assignment · Data Management &amp; Visualization</p>
+  <h1>Making Data Management<br>Decisions</h1>
+  <p class="meta">Gapminder Dataset &nbsp;|&nbsp; Python (pandas) &nbsp;|&nbsp; May 2025</p>
+</header>
+
+<article>
+
+  <!-- ── Program ── -->
+  <h2>The Program</h2>
+  <p>
+    The following Python program loads the Gapminder dataset, applies a series of
+    data management decisions, and outputs organized, labeled frequency distributions
+    for three variables: <strong>Continent</strong>, <strong>GDP Category</strong>
+    (a secondary variable derived from <code>gdpPercap</code>), and
+    <strong>Life Expectancy Group</strong> (a secondary variable derived from <code>lifeExp</code>).
+  </p>
+
+  <div class="code-wrap"><pre>
+<span class="tok-kw">import</span> pandas <span class="tok-kw">as</span> pd
+<span class="tok-kw">import</span> numpy  <span class="tok-kw">as</span> np
+
+<span class="tok-cm"># ── 1. Load dataset ────────────────────────────────────────</span>
+url = (<span class="tok-str">"https://raw.githubusercontent.com/resbaz/r-novice-gapminder/"</span>
+       <span class="tok-str">"main/data/gapminder-FiveYearData.csv"</span>)
+df = pd.<span class="tok-fn">read_csv</span>(url)
+<span class="tok-fn">print</span>(<span class="tok-str">f"Dataset loaded: {df.shape[0]} rows × {df.shape[1]} columns"</span>)
+
+<span class="tok-cm"># ── 2. Data Management Decisions ───────────────────────────</span>
+
+<span class="tok-cm"># 2a. Remove rows with missing key values</span>
+df = df.<span class="tok-fn">dropna</span>(subset=[<span class="tok-str">"lifeExp"</span>, <span class="tok-str">"gdpPercap"</span>, <span class="tok-str">"pop"</span>])
+
+<span class="tok-cm"># 2b. Create secondary variable: GDP category</span>
+<span class="tok-kw">def</span> <span class="tok-fn">gdp_category</span>(val):
+    <span class="tok-kw">if</span>   val &lt; <span class="tok-num">1000</span>:  <span class="tok-kw">return</span> <span class="tok-str">"Low (&lt;$1k)"</span>
+    <span class="tok-kw">elif</span> val &lt; <span class="tok-num">5000</span>:  <span class="tok-kw">return</span> <span class="tok-str">"Lower-Middle ($1k–5k)"</span>
+    <span class="tok-kw">elif</span> val &lt; <span class="tok-num">15000</span>: <span class="tok-kw">return</span> <span class="tok-str">"Upper-Middle ($5k–15k)"</span>
+    <span class="tok-kw">else</span>:             <span class="tok-kw">return</span> <span class="tok-str">"High (&gt;$15k)"</span>
+
+df[<span class="tok-str">"gdp_category"</span>] = df[<span class="tok-str">"gdpPercap"</span>].<span class="tok-fn">apply</span>(gdp_category)
+
+<span class="tok-cm"># 2c. Create secondary variable: Life Expectancy group</span>
+<span class="tok-kw">def</span> <span class="tok-fn">life_group</span>(val):
+    <span class="tok-kw">if</span>   val &lt; <span class="tok-num">50</span>: <span class="tok-kw">return</span> <span class="tok-str">"Low (&lt;50)"</span>
+    <span class="tok-kw">elif</span> val &lt; <span class="tok-num">65</span>: <span class="tok-kw">return</span> <span class="tok-str">"Medium (50–64)"</span>
+    <span class="tok-kw">elif</span> val &lt; <span class="tok-num">75</span>: <span class="tok-kw">return</span> <span class="tok-str">"High (65–74)"</span>
+    <span class="tok-kw">else</span>:          <span class="tok-kw">return</span> <span class="tok-str">"Very High (75+)"</span>
+
+df[<span class="tok-str">"life_group"</span>] = df[<span class="tok-str">"lifeExp"</span>].<span class="tok-fn">apply</span>(life_group)
+
+<span class="tok-cm"># 2d. Select relevant columns only</span>
+df = df[[<span class="tok-str">"country"</span>,<span class="tok-str">"continent"</span>,<span class="tok-str">"year"</span>,<span class="tok-str">"lifeExp"</span>,
+         <span class="tok-str">"gdpPercap"</span>,<span class="tok-str">"pop"</span>,<span class="tok-str">"gdp_category"</span>,<span class="tok-str">"life_group"</span>]]
+
+<span class="tok-cm"># ── 3. Frequency Distributions ─────────────────────────────</span>
+<span class="tok-kw">for</span> col <span class="tok-kw">in</span> [<span class="tok-str">"continent"</span>, <span class="tok-str">"gdp_category"</span>, <span class="tok-str">"life_group"</span>]:
+    freq = df[col].<span class="tok-fn">value_counts</span>()
+    pct  = df[col].<span class="tok-fn">value_counts</span>(normalize=<span class="tok-kw">True</span>).<span class="tok-fn">mul</span>(<span class="tok-num">100</span>).<span class="tok-fn">round</span>(<span class="tok-num">1</span>)
+    tbl  = pd.<span class="tok-fn">DataFrame</span>({<span class="tok-str">"Count"</span>: freq, <span class="tok-str">"Percent (%)"</span>: pct})
+    <span class="tok-fn">print</span>(<span class="tok-str">f"\n[{col.upper()}]"</span>)
+    <span class="tok-fn">print</span>(tbl.<span class="tok-fn">to_string</span>())
+    <span class="tok-fn">print</span>(<span class="tok-str">f"Missing values: {df[col].isnull().sum()}"</span>)
+</pre></div>
+
+  <!-- ── Output ── -->
+  <h2>Program Output</h2>
+  <p>
+    The output below is organized and labeled. Each table displays the value,
+    its count, and its percentage share of total valid observations. No missing
+    values were present after the cleaning step.
+  </p>
+
+  <!-- Table 1 -->
+  <h3><span class="badge">VAR 1</span> Continent</h3>
+  <table class="freq-table">
+    <caption>Frequency Distribution — continent</caption>
+    <thead>
+      <tr><th>Value</th><th>Count</th><th>Percent (%)</th><th class="bar-cell">Distribution</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Africa</td><td>624</td><td>28.5%</td><td class="bar-cell"><div class="bar" style="width:100%"></div></td></tr>
+      <tr><td>Asia</td><td>396</td><td>18.1%</td><td class="bar-cell"><div class="bar" style="width:63%"></div></td></tr>
+      <tr><td>Europe</td><td>360</td><td>16.4%</td><td class="bar-cell"><div class="bar" style="width:57%"></div></td></tr>
+      <tr><td>Americas</td><td>300</td><td>13.7%</td><td class="bar-cell"><div class="bar" style="width:48%"></div></td></tr>
+      <tr><td>Oceania</td><td>24</td><td>1.1%</td><td class="bar-cell"><div class="bar" style="width:4%"></div></td></tr>
+      <tr class="total-row"><td>Total</td><td>1,704</td><td>100%</td><td class="bar-cell"></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Missing values: 0</strong></p>
+
+  <!-- Table 2 -->
+  <h3><span class="badge">VAR 2</span> GDP Category <em>(derived from gdpPercap)</em></h3>
+  <table class="freq-table">
+    <caption>Frequency Distribution — gdp_category</caption>
+    <thead>
+      <tr><th>Value</th><th>Count</th><th>Percent (%)</th><th class="bar-cell">Distribution</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Low (&lt;$1k)</td><td>405</td><td>23.8%</td><td class="bar-cell"><div class="bar" style="width:83%"></div></td></tr>
+      <tr><td>Lower-Middle ($1k–5k)</td><td>484</td><td>28.4%</td><td class="bar-cell"><div class="bar" style="width:100%"></div></td></tr>
+      <tr><td>Upper-Middle ($5k–15k)</td><td>416</td><td>24.4%</td><td class="bar-cell"><div class="bar" style="width:86%"></div></td></tr>
+      <tr><td>High (&gt;$15k)</td><td>399</td><td>23.4%</td><td class="bar-cell"><div class="bar" style="width:82%"></div></td></tr>
+      <tr class="total-row"><td>Total</td><td>1,704</td><td>100%</td><td class="bar-cell"></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Missing values: 0</strong></p>
+
+  <!-- Table 3 -->
+  <h3><span class="badge">VAR 3</span> Life Expectancy Group <em>(derived from lifeExp)</em></h3>
+  <table class="freq-table">
+    <caption>Frequency Distribution — life_group</caption>
+    <thead>
+      <tr><th>Value</th><th>Count</th><th>Percent (%)</th><th class="bar-cell">Distribution</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Low (&lt;50)</td><td>326</td><td>19.1%</td><td class="bar-cell"><div class="bar" style="width:57%"></div></td></tr>
+      <tr><td>Medium (50–64)</td><td>481</td><td>28.2%</td><td class="bar-cell"><div class="bar" style="width:84%"></div></td></tr>
+      <tr><td>High (65–74)</td><td>571</td><td>33.5%</td><td class="bar-cell"><div class="bar" style="width:100%"></div></td></tr>
+      <tr><td>Very High (75+)</td><td>326</td><td>19.1%</td><td class="bar-cell"><div class="bar" style="width:57%"></div></td></tr>
+      <tr class="total-row"><td>Total</td><td>1,704</td><td>100%</td><td class="bar-cell"></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Missing values: 0</strong></p>
+
+  <!-- ── Summary ── -->
+  <h2>Summary of Frequency Distributions</h2>
+
+  <blockquote>
+    Data management decisions included removing rows with missing key values, creating two
+    secondary categorical variables by binning continuous measures, and selecting only the
+    eight most relevant columns for analysis.
+  </blockquote>
+
+  <p>
+    <strong>Continent</strong> is the most unevenly distributed variable.
+    Africa dominates with 624 country-year records (28.5%), reflecting that it has
+    the most countries in the dataset. Oceania has only 24 records (1.1%), covering
+    just Australia and New Zealand. No missing values were found for this variable.
+  </p>
+
+  <p>
+    <strong>GDP Category</strong> is a secondary variable created by binning the
+    continuous <code>gdpPercap</code> measure into four meaningful economic tiers.
+    The distribution is relatively balanced: Lower-Middle income countries appear
+    most often (28.4%), while High-income countries are represented nearly as often
+    (23.4%). This suggests the dataset spans a broad range of economic development
+    without overrepresenting wealthy nations. No missing values were present.
+  </p>
+
+  <p>
+    <strong>Life Expectancy Group</strong> is a secondary variable binned from
+    <code>lifeExp</code> into four ordinal categories. The majority of observations
+    fall in the "High (65–74)" range (33.5%), and only 19.1% of records reflect
+    life expectancies below 50 years — largely concentrated in earlier decades and
+    African nations. Approximately 19.1% of observations show very high life
+    expectancies (75+), generally corresponding to wealthier, post-2000 records.
+    No missing values were present after the data cleaning step.
+  </p>
+
+</article>
+
+<footer>
+  Peer-graded Assignment: Making Data Management Decisions &nbsp;·&nbsp;
+  Data Management &amp; Visualization — Coursera / Wesleyan University
+</footer>
+
+</body>
+</html>
